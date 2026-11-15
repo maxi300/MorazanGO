@@ -1,99 +1,163 @@
-<<<<<<< HEAD
-# MorazánGo — App Pasajero
+# MorazánGo | Aplicación para pasajeros
 
-## Antes de correrla
+Aplicación móvil para que los pasajeros de MorazánGo puedan registrarse, solicitar y programar viajes, seguir su estado en tiempo real y comunicarse con el conductor. El cliente está construido con React Native y Expo; consume una API y un servicio Socket.IO que se ejecutan por separado.
 
-1. **Instala la app "Expo Go"** en tu celular (Google Play / App Store) — es gratis.
-2. Tu celular y tu computadora deben estar en la **misma red WiFi**.
-3. Abre `src/config/constants.js` y cambia `API_URL` y `SOCKET_URL` por la IP de tu computadora en esa red (NO "localhost" — desde el celular, localhost es el propio celular). Cómo encontrarla:
-   - Windows: `ipconfig` en cmd, busca "Dirección IPv4"
-   - Mac: `ipconfig getifaddr en0`
-4. Asegúrate de que tu backend (`morazango-backend-zip`) esté corriendo con `npm start`.
+> **Alcance del repositorio:** contiene la aplicación móvil de pasajeros. El backend, la aplicación del conductor y los servicios de infraestructura se mantienen en proyectos separados.
 
-## ⚠️ Pago con tarjeta — necesita un "development build", no funciona en Expo Go normal
+## Funcionalidades
 
-Todo lo demás de la app corre en la app "Expo Go" que bajas de la tienda. **La pantalla de tarjetas es la excepción** — el SDK de Stripe tiene código nativo, así que Expo Go (la app genérica) no lo soporta. El resto de la app (mapa, viajes, chat, etc.) sigue funcionando en Expo Go sin problema; solo "Métodos de pago" fallará ahí.
+| Área | Funcionalidad |
+| --- | --- |
+| Cuenta | Registro e inicio de sesión con teléfono y contraseña |
+| Ubicación | Solicitud de permiso, ubicación actual y selección de origen |
+| Búsqueda | Autocompletado de lugares de El Salvador con Google Places y destinos recientes |
+| Solicitud de viaje | Selección de origen, destino, zona, tipo de vehículo y método de pago |
+| Programación | Solicitud de viajes para una fecha posterior |
+| Seguimiento | Estado del viaje y ubicación del conductor mediante Socket.IO |
+| Comunicación | Historial de mensajes y chat asociado al viaje |
+| Historial | Consulta de viajes anteriores y programados; cancelación de viajes programados |
+| Calificación | Envío de estrellas y comentario al finalizar un viaje |
+| Pagos | Efectivo y administración de tarjetas mediante Stripe |
 
-Para probar el pago con tarjeta, necesitas generar tu propia versión de Expo Go personalizada ("development build"), una sola vez:
+Las zonas y tipos de vehículo disponibles se encuentran definidos en la configuración de la aplicación.
 
-```bash
-npm install -g eas-cli
-eas login
-eas build --profile development --platform android
+## Tecnologías
+
+- **React Native 0.88** y **Expo SDK 58**
+- **React Navigation 7** para navegación por pestañas y flujos de pantallas
+- **Axios** para consumir la API REST
+- **Socket.IO Client** para actualizaciones en tiempo real
+- **Expo SecureStore** para persistir la sesión del usuario
+- **Expo Location** y **React Native Maps** para ubicación y mapas
+- **Google Places** para autocompletado de direcciones
+- **Stripe React Native SDK** para agregar y administrar tarjetas
+
+## Arquitectura de la aplicación
+
+```text
+App.js
+├── Proveedores de sesión, viajes, notificaciones y pagos
+└── AppNavigator
+    ├── Autenticación: inicio de sesión y registro
+    └── Aplicación autenticada
+        ├── Inicio: mapa y solicitud de viaje
+        ├── Historial: viajes realizados y programados
+        ├── Perfil: datos del usuario y métodos de pago
+        └── Flujo del viaje: búsqueda, seguimiento, chat y calificación
+
+src/config/
+├── api.js       Cliente Axios y token Bearer
+├── constants.js URLs, claves públicas y opciones de viaje
+└── socket.js    Conexión autenticada de Socket.IO
+
+src/context/
+├── AuthContext.js  Sesión y autenticación
+├── RideContext.js  Estado y eventos del viaje activo
+└── ToastContext.js Notificaciones dentro de la aplicación
 ```
 
-(o `--platform ios` para iPhone — para iOS necesitas cuenta de Apple Developer, para Android no). Esto genera un `.apk`/`.ipa` que instalas en tu celular UNA vez, y a partir de ahí `npx expo start` funciona igual que siempre pero abriendo esa app en vez de Expo Go.
+La sesión se restaura desde SecureStore al iniciar la app. El cliente Axios agrega el token como `Authorization: Bearer ...`; Socket.IO se conecta con el mismo token. El contexto del viaje escucha eventos del backend como `conductor_asignado`, `viaje_actualizado`, `ubicacion_conductor` y `mensaje_chat`.
 
-**Mientras tanto**, puedes seguir probando todo lo demás en Expo Go normal — pagar en efectivo funciona siempre, sin necesitar nada de esto.
+## Requisitos
 
-## Google Places — para el buscador de destino (tipo Uber)
+- Node.js y npm
+- Expo Go compatible con Expo SDK 58 para ejecutar las funciones compatibles
+- Un backend MorazánGo activo y accesible por la red
+- Para las funciones de mapas y búsqueda: claves de Google configuradas
+- Para pagos con tarjeta: un development build y configuración de Stripe en el backend
 
-La app ahora tiene un buscador de direcciones con autocompletado real (calles, negocios, parques de El Salvador) y lugares recientes, igual que Uber. Esto necesita **otra key de Google, distinta a la del backend**:
+## Instalación y ejecución
 
-1. En el mismo proyecto de Google Cloud, habilita **"Places API"** (además de "Maps SDK for Android" que ya configuraste)
-2. Crea una API key nueva (o reutiliza una, pero mejor separada) restringida por "Nombre del paquete Android" (`com.morazango.pasajero`) y, para iOS, por "ID de paquete" — nunca sin restricción, porque esta key sí viaja dentro de la app y cualquiera podría verla
-3. Pégala en `src/config/constants.js` → `GOOGLE_PLACES_API_KEY`
-
-Sin esta key, el buscador de destino no va a devolver resultados (pero el resto de la app sigue funcionando).
-
-## ⚠️ Google Maps en Android — obligatorio, sin esto el mapa sale en blanco
-
-A diferencia de iOS (que usa Apple Maps automáticamente, sin configurar nada), **Android necesita sí o sí una API key de Google Maps** para mostrar el mapa, incluso solo para probar en Expo Go. Sin esto, vas a ver un cuadriculado gris en vez del mapa.
-
-1. Ve a [console.cloud.google.com](https://console.cloud.google.com) (puedes usar el mismo proyecto que ya creaste para el backend)
-2. Busca y habilita **"Maps SDK for Android"**
-3. Ve a "Credenciales" → crea una API key (o reutiliza la del backend, pero mejor crear una nueva restringida solo a esta API)
-4. Abre `app.json` y pega la key en `android.config.googleMaps.apiKey`
-
-En iPhone no necesitas hacer nada de esto — funciona directo.
-
-## Instalar y correr
+Desde la carpeta del proyecto:
 
 ```bash
 npm install
 npx expo start
 ```
 
-Te va a salir un código QR en la terminal. Escanéalo con la cámara de tu celular (iOS) o con la app Expo Go (Android), y la app se abre sola.
+Abre el QR con Expo Go o con un development build compatible. También están disponibles los scripts:
 
-## Google Maps (opcional para probar, necesario para producción)
+```bash
+npm run android
+npm run ios
+npm run web
+```
 
-El mapa funciona sin configurar nada extra mientras pruebas con Expo Go (usa Apple Maps en iOS, y en Android puede pedir una key de Google Maps para funcionar completo). Para producción, edita `app.json`:
-- `android.config.googleMaps.apiKey` — necesita la **"Maps SDK for Android"** habilitada en Google Cloud (distinta a la key del backend, que usa la Directions API)
+`npm run ios` requiere un entorno de desarrollo iOS compatible. Para probar en un teléfono físico, el teléfono y la computadora deben poder comunicarse por la misma red.
+
+## Configuración de servicios
+
+### Backend REST y Socket.IO
+
+Edita `src/config/constants.js` y configura las direcciones del backend:
+
+```js
+export const API_URL = 'http://<IP-DE-LA-COMPUTADORA>:3000/api';
+export const SOCKET_URL = 'http://<IP-DE-LA-COMPUTADORA>:3000';
+```
+
+Reemplaza el ejemplo por la dirección y el puerto reales del backend. En un teléfono físico, `localhost` apunta al teléfono, no a la computadora. Si la IP local cambia, actualiza ambos valores. El backend debe permitir conexiones desde el dispositivo y ofrecer las rutas REST y eventos Socket.IO que consume esta app.
+
+### Google Maps y Places
+
+- En `app.json`, configura `android.config.googleMaps.apiKey` con una clave habilitada para **Maps SDK for Android**.
+- En `src/config/constants.js`, configura `GOOGLE_PLACES_API_KEY` con una clave habilitada para **Places API**.
+- Restringe las claves de Google a las APIs y aplicaciones necesarias. La búsqueda de lugares está configurada para El Salvador.
+
+### Stripe
+
+Configura `STRIPE_PUBLISHABLE_KEY` en `src/config/constants.js` con una clave publicable (`pk_test_...` o `pk_live_...`). Las operaciones de servidor requieren que el backend configure Stripe por separado.
+
+`@stripe/stripe-react-native` contiene código nativo; por eso, la pantalla de métodos de pago requiere un **development build** y no funciona en Expo Go genérico. El pago en efectivo no depende de Stripe.
+
+## Rutas REST consumidas
+
+La URL base de Axios termina en `/api`. Entre las rutas utilizadas por la aplicación están:
+
+| Método | Ruta | Uso |
+| --- | --- | --- |
+| `POST` | `/auth/registro` | Crear cuenta de pasajero |
+| `POST` | `/auth/login` | Iniciar sesión |
+| `POST` | `/viajes` | Crear o programar un viaje |
+| `GET` | `/viajes/:id` | Consultar un viaje |
+| `GET` | `/viajes/mis-viajes` | Consultar historial |
+| `GET` | `/viajes/programados` | Consultar viajes programados |
+| `PUT` | `/viajes/:id/cancelar` | Cancelar un viaje |
+| `GET`, `POST` | `/viajes/:id/mensajes` | Consultar y enviar mensajes |
+| `POST` | `/viajes/:id/calificar` | Calificar un viaje |
+| `GET`, `POST` | `/pagos/tarjetas` | Consultar y agregar tarjetas |
+| `DELETE` | `/pagos/tarjetas/:id` | Eliminar una tarjeta |
+
+Estas rutas describen el contrato esperado por el cliente; el servicio que las implementa no está incluido en este repositorio.
 
 ## Estructura del proyecto
 
-```
+```text
+assets/                  Iconos y recursos de la aplicación
 src/
-  config/       → constants.js (URLs), api.js (axios), socket.js (Socket.io)
-  context/      → AuthContext (sesión), RideContext (viaje activo), ToastContext (notificaciones)
-  components/   → Button, LoadingScreen, ToastHost, RadarBuscando — piezas reutilizables
-  navigation/   → AppNavigator (pestañas abajo + pilas de viaje encima)
+  components/            Componentes reutilizables
+  config/                API, Socket.IO, constantes y claves de cliente
+  context/               Estado de autenticación, viajes y notificaciones
+  navigation/            Navegación autenticada y no autenticada
   screens/
-    auth/       → Login, Registro
-    home/       → Mapa + pedir viaje
-    ride/       → Seguimiento en vivo, Chat, Calificar, Historial
-    profile/    → Perfil del usuario
+    auth/                Inicio de sesión y registro
+    home/                Mapa, selección de lugares y solicitud de viaje
+    profile/             Perfil y métodos de pago
+    ride/                Seguimiento, chat, calificación e historial
+  utils/                 Utilidades para lugares recientes
+App.js                   Composición de proveedores y navegación
+app.json                 Configuración Expo y plataformas nativas
+package.json             Dependencias y comandos
 ```
 
-## Sobre la experiencia de usuario
+## Seguridad y configuración sensible
 
-- **Notificaciones**: los errores y avisos usan un banner tipo "toast" que aparece arriba y se esconde solo — no interrumpen como una alerta nativa. Solo quedan 2 diálogos bloqueantes de verdad (cancelar viaje, cerrar sesión), porque son decisiones que sí ameritan detener al usuario.
-- **Navegación**: 3 pestañas fijas abajo (Inicio, Historial, Perfil) — el flujo de un viaje activo (seguimiento, chat, calificar) se abre encima como una capa, y regresa a donde estabas al cerrarla.
-- **Áreas seguras**: los botones flotantes del mapa respetan el notch/Dynamic Island del iPhone automáticamente.
+- No guardes contraseñas, tokens privados ni claves secretas en el repositorio.
+- La clave secreta de Stripe (`sk_...`) debe permanecer únicamente en el backend.
+- Las claves cliente de Google y la clave publicable de Stripe se incluyen en la app; restringe sus permisos y uso en sus respectivas consolas.
+- El token de sesión se almacena con Expo SecureStore y se envía al backend por HTTPS en ambientes desplegados.
+- Para producción, configura HTTPS/WSS y URLs de backend seguras; las direcciones HTTP locales de desarrollo no deben reutilizarse en producción.
 
-## Publicar en las tiendas (cuando esté lista)
+## Estado del proyecto
 
-Con Expo, no necesitas Android Studio ni Xcode para generar el build final:
-
-```bash
-npm install -g eas-cli
-eas login
-eas build --platform android
-eas build --platform ios
-```
-
-Esto requiere cuenta de Expo (gratis) y, para publicar de verdad, cuenta de Google Play ($25 pago único) y/o Apple Developer ($99/año).
-=======
-# MorazanGO
->>>>>>> 53bd44e4ef6d51416366eb739d8ed1d5e8026e18
+Aplicación móvil cliente en desarrollo. Su funcionamiento integral depende de que estén disponibles y configurados el backend, los servicios de mapas y, para pagos con tarjeta, Stripe.
