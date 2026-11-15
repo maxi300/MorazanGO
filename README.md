@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # MorazánGo — App Pasajero
 
 ## Antes de correrla
@@ -93,3 +94,6 @@ eas build --platform ios
 ```
 
 Esto requiere cuenta de Expo (gratis) y, para publicar de verdad, cuenta de Google Play ($25 pago único) y/o Apple Developer ($99/año).
+=======
+# MorazanGO
+>>>>>>> 53bd44e4ef6d51416366eb739d8ed1d5e8026e18
