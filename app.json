@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "MorazánGo",
+    "slug": "morazango-app-pasajero",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.morazango.pasajero",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "MorazánGo necesita tu ubicación para saber dónde recogerte y mostrarte a los conductores cercanos."
+      }
+    },
+    "android": {
+      "package": "com.morazango.pasajero",
+      "adaptiveIcon": {
+        "backgroundColor": "#0A7C42",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "TU_GOOGLE_MAPS_API_KEY_ANDROID"
+        }
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "MorazánGo necesita tu ubicación para saber dónde recogerte."
+        }
+      ],
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.morazango.pasajero",
+          "enableGooglePay": false
+        }
+      ],
+      "expo-secure-store",
+      "expo-status-bar"
+    ]
+  }
+}
